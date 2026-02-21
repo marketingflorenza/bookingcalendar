@@ -3,135 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจัดการปฏิทินแยกสาขา - Florenza Clinic</title>
+    <title>ระบบจัดการปฏิทิน Florenza Clinic Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <!-- FullCalendar CSS -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f8f9fa; }
+        body { font-family: 'Kanit', sans-serif; background-color: #fcfaff; }
+        .luxury-text { font-family: 'Playfair Display', serif; }
+        
+        /* สไตล์ของนัดหมายในปฏิทิน */
         .fc-event { 
             cursor: pointer; 
             border: none !important; 
-            padding: 4px 8px !important; 
-            border-radius: 8px !important; 
-            font-size: 0.85em !important; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+            padding: 3px 6px !important; 
+            border-radius: 6px !important; 
+            font-size: 0.75em !important; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
             color: white !important; 
-            border-left: 4px solid rgba(0,0,0,0.2) !important; 
+            border-left: 3px solid rgba(0,0,0,0.2) !important;
+            margin: 1px 0 !important;
         }
         
-        /* สีตามสาขา (ค่าเริ่มต้น) */
+        /* สีประจำสาขา (สีหลัก) */
         .branch-chiangmai { background-color: #8b5cf6 !important; }
-        .branch-bangyai { background-color: #f43f5e !important; }
+        .branch-bangyai { background-color: #ec4899 !important; }
         .branch-sriracha { background-color: #3b82f6 !important; }
         .branch-ramintra { background-color: #10b981 !important; }
         
-        /* สีตามสถานะ (ทับสีสาขา) */
-        .status-arrived { background-color: #22c55e !important; border-left: 4px solid #166534 !important; } /* เขียว */
-        .status-noshow { background-color: #ef4444 !important; border-left: 4px solid #991b1b !important; }  /* แดง */
-        .status-rescheduled { background-color: #f59e0b !important; border-left: 4px solid #b45309 !important; } /* ส้ม */
+        /* สีตามสถานะ (ทับสีสาขาเมื่อมีการระบุสถานะ) */
+        .status-arrived { background-color: #16a34a !important; border-left: 3px solid #064e3b !important; }
+        .status-noshow { background-color: #dc2626 !important; border-left: 3px solid #7f1d1d !important; }
+        .status-rescheduled { background-color: #d97706 !important; border-left: 3px solid #78350f !important; }
 
-        .fc-toolbar-title { font-size: 1.25em !important; color: #4c1d95; font-weight: 600; }
-        .fc-button-primary { background-color: #7e22ce !important; border-color: #7e22ce !important; border-radius: 10px !important; }
+        .fc-toolbar-title { font-size: 1rem !important; color: #4c1d95; font-weight: 600; }
+        .fc-button-primary { 
+            background-color: #7e22ce !important; 
+            border: none !important; 
+            border-radius: 8px !important; 
+            font-size: 0.8rem !important; 
+            padding: 4px 10px !important; 
+        }
+        .fc-button-primary:hover { background-color: #6b21a8 !important; }
+        .fc-button-active { background-color: #581c87 !important; }
         
-        #errorBanner { display: none; background-color: #fee2e2; border-left: 4px solid #ef4444; color: #991b1b; padding: 1rem; margin-bottom: 1.5rem; border-radius: 0.5rem; }
+        #errorBanner { display: none; background-color: #fee2e2; border-left: 4px solid #ef4444; color: #991b1b; padding: 0.5rem 1rem; margin-bottom: 1rem; border-radius: 0.5rem; font-size: 0.8rem; }
+        
+        /* สไตล์ Modal */
+        .animate-fade-in { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        /* การจัดตารางบนมือถือ */
+        @media (max-width: 640px) {
+            .fc-header-toolbar { flex-direction: column; gap: 8px; margin-bottom: 1rem !important; }
+            .fc-toolbar-chunk { display: flex; justify-content: center; width: 100%; }
+        }
     </style>
 </head>
-<body class="text-gray-800">
+<body class="text-gray-800 antialiased">
 
-    <header class="bg-white shadow-md py-4 mb-6 sticky top-0 z-50">
-        <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
+    <!-- Header Section (Compact & Responsive) -->
+    <header class="bg-white shadow-sm py-2 sticky top-0 z-50 border-b border-purple-50">
+        <div class="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
             <div class="flex items-center">
-                <img src="https://florenza-clinic.com/wp-content/uploads/2026/02/Logo-Florenza-1-Edited.png" alt="Logo" class="h-10 md:h-12 w-auto mr-4">
-                <div>
-                    <h1 class="text-lg md:text-xl font-bold text-purple-900">Admin Dashboard</h1>
-                    <p class="text-xs text-purple-500">จัดการตารางนัดหมายแยกรายสาขา</p>
+                <img src="https://florenza-clinic.com/wp-content/uploads/2026/02/Logo-Florenza-1-Edited.png" alt="Logo" class="h-8 md:h-10 w-auto mr-3">
+                <div class="xs:block">
+                    <h1 class="text-sm md:text-base font-bold text-purple-900 leading-tight">Florenza Admin</h1>
+                    <p class="text-[9px] text-purple-400 uppercase tracking-widest font-semibold">Aesthetics & Wellness</p>
                 </div>
             </div>
             
-            <div class="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-                <!-- สรุปจำนวนนัดหมาย -->
-                <div id="summaryBox" class="bg-purple-900 text-white px-4 py-2 rounded-xl text-sm font-medium flex gap-4 shadow-inner">
-                    <span>นัดหมายวันนี้: <span id="todayCount" class="font-bold text-yellow-300">0</span> รายการ</span>
+            <div class="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto">
+                <!-- สรุปตัวเลขรายวัน -->
+                <div id="summaryBox" class="bg-purple-900 text-white px-3 py-1.5 rounded-lg text-[11px] font-medium shadow-md flex items-center gap-2">
+                    <span class="opacity-80">นัดวันนี้:</span>
+                    <span id="todayCount" class="font-bold text-yellow-300 text-sm">0</span>
                 </div>
 
-                <div class="flex items-center bg-purple-50 p-1 rounded-xl border border-purple-100 w-full md:w-auto">
-                    <label for="branchFilter" class="px-3 text-sm font-medium text-purple-700">สาขา:</label>
-                    <select id="branchFilter" onchange="refreshCalendar()" class="bg-white rounded-lg py-2 px-4 text-sm font-medium text-purple-900 outline-none shadow-sm">
-                        <option value="เชียงใหม่" selected>เชียงใหม่</option>
+                <!-- ตัวกรองสาขา -->
+                <div class="flex items-center bg-purple-50 p-1 rounded-lg border border-purple-100 shadow-sm">
+                    <label for="branchFilter" class="px-2 text-[10px] font-bold text-purple-700 uppercase">สาขา:</label>
+                    <select id="branchFilter" onchange="refreshCalendar()" class="bg-white rounded-md py-1 px-2 text-xs font-semibold text-purple-900 outline-none focus:ring-1 focus:ring-purple-300 transition-all">
+                        <option value="เชียงใหม่">เชียงใหม่</option>
                         <option value="บางใหญ่">บางใหญ่</option>
                         <option value="ศรีราชา">ศรีราชา</option>
                         <option value="รามอินทรา">รามอินทรา</option>
                     </select>
                 </div>
+                
+                <button onclick="refreshCalendar()" class="bg-white border border-gray-200 p-1.5 rounded-lg hover:bg-gray-50 text-gray-500 transition-all active:scale-95" title="รีเฟรชข้อมูล">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </button>
             </div>
         </div>
     </header>
 
-    <main class="container mx-auto px-4 pb-12">
+    <main class="container mx-auto px-2 md:px-4 py-4">
         <div id="errorBanner">
-            <p class="font-bold text-sm">ตรวจพบข้อผิดพลาดในการเชื่อมต่อ:</p>
-            <p id="errorMessage" class="text-xs mt-1"></p>
+            <p id="errorMessage"></p>
         </div>
 
-        <div class="bg-white rounded-3xl shadow-xl p-4 md:p-8 relative border border-purple-50">
-            <div id="calendar" class="min-h-[600px]"></div>
-            <div id="calendarLoading" class="absolute inset-0 bg-white/50 z-10 flex items-center justify-center hidden rounded-3xl">
-                <div class="animate-spin rounded-full h-10 w-10 border-4 border-purple-600 border-t-transparent"></div>
+        <div class="bg-white rounded-2xl shadow-xl p-2 md:p-6 relative border border-purple-50">
+            <div id="calendar" class="min-h-[500px]"></div>
+            
+            <!-- Loading indicator -->
+            <div id="calendarLoading" class="absolute inset-0 bg-white/60 z-10 flex items-center justify-center hidden rounded-2xl backdrop-blur-[2px]">
+                <div class="flex flex-col items-center gap-2">
+                    <div class="animate-spin rounded-full h-8 w-8 border-4 border-purple-600 border-t-transparent"></div>
+                    <span class="text-[10px] font-bold text-purple-900 uppercase">กำลังดึงข้อมูล...</span>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- Modal รายละเอียด -->
-    <div id="eventModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-[100] backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl overflow-y-auto max-h-[90vh]">
-            <div class="flex justify-between items-start mb-4">
-                <h3 class="text-xl font-bold text-purple-900">รายละเอียดนัดหมาย</h3>
-                <span id="branchBadge" class="px-2 py-1 rounded-md text-xs font-bold text-white uppercase"></span>
+    <!-- Modal รายละเอียด (Luxury Design) -->
+    <div id="eventModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center p-3 z-[100] backdrop-blur-md">
+        <div class="bg-white rounded-3xl p-5 md:p-8 max-w-md w-full shadow-2xl overflow-y-auto max-h-[95vh] animate-fade-in relative border border-white/20">
+            <div class="flex justify-between items-start mb-5">
+                <div>
+                    <h3 class="text-xl font-bold text-purple-900 luxury-text">ข้อมูลการนัดหมาย</h3>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Appointment Details</p>
+                </div>
+                <span id="branchBadge" class="px-2.5 py-1 rounded-full text-[9px] font-bold text-white uppercase shadow-sm"></span>
             </div>
             
-            <div id="modalContent" class="space-y-4 text-sm mb-6"></div>
+            <div id="modalContent" class="space-y-4 text-xs md:text-sm mb-8"></div>
 
-            <!-- ส่วนจัดการสถานะ -->
-            <div class="border-t pt-6">
-                <p class="text-xs font-bold text-gray-400 uppercase mb-3">จัดการสถานะการนัดหมาย</p>
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <button onclick="updateStatus('มาแล้ว')" class="bg-green-600 text-white py-3 rounded-xl font-medium shadow-md hover:bg-green-700 transition-all flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+            <!-- ส่วนจัดการสถานะ (Action Zone) -->
+            <div class="border-t border-gray-100 pt-6">
+                <p class="text-[10px] font-bold text-purple-400 uppercase mb-4 tracking-widest">Update Status</p>
+                
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <button onclick="updateStatus('มาแล้ว')" class="bg-green-600 text-white py-3 rounded-2xl text-sm font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-100 active:scale-95">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                         มาแล้ว
                     </button>
-                    <button onclick="updateStatus('ไม่มา')" class="bg-red-600 text-white py-3 rounded-xl font-medium shadow-md hover:bg-red-700 transition-all flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    <button onclick="updateStatus('ไม่มา')" class="bg-red-600 text-white py-3 rounded-2xl text-sm font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-100 active:scale-95">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                         ไม่มา
                     </button>
                 </div>
                 
-                <div class="space-y-3">
-                    <div class="flex gap-2">
-                        <input type="date" id="newDateInput" class="flex-grow border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-400">
-                        <button onclick="rescheduleAppointment()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition-all">เลื่อนนัด</button>
+                <div class="bg-blue-50/50 p-4 rounded-3xl border border-blue-100 space-y-4 mb-6">
+                    <div class="flex items-center gap-2">
+                        <svg class="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <p class="text-[10px] font-bold text-blue-700 uppercase tracking-widest">เลื่อนนัดหมายใหม่</p>
                     </div>
-                    <button onclick="callCustomer()" class="w-full bg-purple-100 text-purple-700 py-3 rounded-xl font-medium hover:bg-purple-200 transition-all flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                        โทรหาลูกค้า
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-[9px] text-blue-400 font-bold ml-1 uppercase">วันที่ใหม่</label>
+                            <input type="date" id="newDateInput" class="w-full border border-blue-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[9px] text-blue-400 font-bold ml-1 uppercase">เวลาใหม่</label>
+                            <input type="time" id="newTimeInput" class="w-full border border-blue-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+                        </div>
+                    </div>
+                    <button onclick="rescheduleAppointment()" class="w-full bg-blue-600 text-white py-3 rounded-xl text-xs font-bold hover:bg-blue-700 transition-all shadow-md active:scale-95">
+                        ยืนยันการเลื่อนนัดหมาย
                     </button>
-                    <button onclick="closeModal()" class="w-full bg-gray-100 text-gray-400 py-3 rounded-xl font-medium hover:bg-gray-200 transition-all">ปิด</button>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <button onclick="callCustomer()" class="w-full bg-purple-600 text-white py-3.5 rounded-2xl text-xs font-bold hover:bg-purple-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-100">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                        โทรติดต่อลูกค้า
+                    </button>
+                    <button onclick="closeModal()" class="w-full text-gray-400 py-2 text-[10px] font-bold uppercase tracking-widest hover:text-gray-600 transition-colors">Close / ย้อนกลับ</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- แถบโหลดการอัปเดต -->
-    <div id="actionLoading" class="fixed inset-0 bg-black/20 z-[200] hidden items-center justify-center">
-        <div class="bg-white p-6 rounded-2xl shadow-xl flex items-center gap-4">
-            <div class="animate-spin rounded-full h-6 w-6 border-2 border-purple-600 border-t-transparent"></div>
-            <span class="text-sm font-medium text-purple-900">กำลังบันทึกข้อมูล...</span>
+    <!-- Processing Overlay -->
+    <div id="actionLoading" class="fixed inset-0 bg-purple-900/20 z-[200] hidden items-center justify-center backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-purple-50">
+            <div class="animate-spin rounded-full h-8 w-8 border-4 border-purple-600 border-t-transparent"></div>
+            <span class="text-[10px] font-bold text-purple-900 uppercase tracking-widest">กำลังบันทึกข้อมูล...</span>
         </div>
     </div>
 
     <script>
+        // ใช้ URL เดียวกันเพื่อให้ดึงและแก้ไขข้อมูลจากที่เดียวกัน
         const scriptUrl = "https://script.google.com/macros/s/AKfycbzRgs-hHTakdig13BmAC8DRyifoq5YdPu_n9zI7RP6x0lYbosx97bqaU_iVlIsPAQryMw/exec";
         
         let calendar;
@@ -144,37 +198,41 @@
                 initialView: 'dayGridMonth',
                 locale: 'th',
                 height: 'auto',
-                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
+                headerToolbar: { 
+                    left: 'prev,next today', 
+                    center: 'title', 
+                    right: 'dayGridMonth,timeGridDay' 
+                },
                 loading: isLoading => document.getElementById('calendarLoading').classList.toggle('hidden', !isLoading),
                 events: async (info, successCallback, failureCallback) => {
                     document.getElementById('errorBanner').style.display = 'none';
                     try {
                         const response = await fetch(scriptUrl);
+                        if (!response.ok) throw new Error('Network response error');
                         const allRows = await response.json();
+                        
                         const currentBranch = document.getElementById('branchFilter').value;
                         
-                        // กรองตามสาขา
-                        const filteredRows = allRows.map((row, index) => ({...row, rowIndex: index + 2})) // +2 เพราะ index 0 คือแถวที่ 1 (Header)
+                        // กรองข้อมูลและเก็บดัชนีแถว (Row Index)
+                        const filteredRows = allRows.map((row, index) => ({...row, rowIndex: index + 2}))
                                                     .filter(row => row[3] && row[3].toString().trim() === currentBranch.trim());
 
                         updateDailySummary(filteredRows);
 
                         const events = filteredRows.map(row => {
                             const branchMapping = { 'เชียงใหม่': 'branch-chiangmai', 'บางใหญ่': 'branch-bangyai', 'ศรีราชา': 'branch-sriracha', 'รามอินทรา': 'branch-ramintra' };
-                            const status = row[8] ? row[8].toString().trim() : ''; // Column I
-                            
-                            let dateStr = row[4];
-                            if (dateStr && dateStr.includes('T')) dateStr = dateStr.split('T')[0];
+                            const status = row[8] ? row[8].toString().trim() : '';
+                            let dateStr = row[4] && row[4].includes('T') ? row[4].split('T')[0] : row[4];
                             let timeStr = row[5] || "00:00";
                             
-                            // กำหนด Class ตามสถานะ
                             let eventClass = branchMapping[row[3].toString().trim()] || '';
+                            // ทับสีด้วยสถานะ
                             if (status === 'มาแล้ว') eventClass = 'status-arrived';
                             else if (status === 'ไม่มา') eventClass = 'status-noshow';
                             else if (status === 'เลื่อนนัด') eventClass = 'status-rescheduled';
 
                             return {
-                                title: `${row[1] || 'ไม่ระบุชื่อ'} (${timeStr})${status ? ' - ' + status : ''}`,
+                                title: `${row[1] || 'ไม่ระบุ'} (${timeStr})${status ? ' - ' + status : ''}`,
                                 start: `${dateStr}T${timeStr}:00`,
                                 className: eventClass,
                                 extendedProps: { 
@@ -188,7 +246,7 @@
                     } catch (e) {
                         console.error(e);
                         document.getElementById('errorBanner').style.display = 'block';
-                        document.getElementById('errorMessage').textContent = "ไม่สามารถเชื่อมต่อข้อมูลได้: " + e.message;
+                        document.getElementById('errorMessage').textContent = "ไม่สามารถเชื่อมต่อฐานข้อมูลได้: " + e.message;
                         failureCallback(e);
                     }
                 },
@@ -200,8 +258,7 @@
         function updateDailySummary(data) {
             const today = new Date().toISOString().split('T')[0];
             const count = data.filter(row => {
-                let d = row[4];
-                if(d && d.includes('T')) d = d.split('T')[0];
+                let d = row[4] && row[4].includes('T') ? row[4].split('T')[0] : row[4];
                 return d === today;
             }).length;
             document.getElementById('todayCount').textContent = count;
@@ -216,24 +273,25 @@
             
             const colors = { 'เชียงใหม่': 'bg-purple-600', 'บางใหญ่': 'bg-pink-600', 'ศรีราชา': 'bg-blue-600', 'รามอินทรา': 'bg-green-600' };
             badge.textContent = props.branch;
-            badge.className = `px-2 py-1 rounded-md text-[10px] font-bold text-white uppercase ${colors[props.branch] || 'bg-gray-500'}`;
+            badge.className = `px-2.5 py-1 rounded-full text-[9px] font-bold text-white uppercase shadow-sm ${colors[props.branch] || 'bg-gray-500'}`;
             
             content.innerHTML = `
-                <div class="bg-purple-50 p-4 rounded-2xl">
-                    <p class="text-xs text-purple-400 font-bold mb-1 uppercase">ชื่อลูกค้า</p>
-                    <p class="text-lg font-semibold text-purple-900">${props.fullname || '-'}</p>
-                    ${props.status ? `<span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-white text-purple-600 border border-purple-200">สถานะ: ${props.status}</span>` : ''}
+                <div class="bg-purple-50 p-4 rounded-2xl border border-purple-100 shadow-inner">
+                    <p class="text-[9px] text-purple-400 font-bold uppercase mb-1 tracking-widest">Customer / ลูกค้า</p>
+                    <p class="text-lg font-bold text-purple-900">${props.fullname || '-'}</p>
+                    ${props.status ? `<span class="inline-block mt-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-white text-purple-600 border border-purple-200 shadow-sm">Status: ${props.status}</span>` : ''}
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-gray-50 p-3 rounded-2xl"><p class="text-xs text-gray-400 font-bold">วันที่นัด</p><p class="font-medium text-purple-800">${props.date}</p></div>
-                    <div class="bg-gray-50 p-3 rounded-2xl"><p class="text-xs text-gray-400 font-bold">เวลานัด</p><p class="font-medium text-purple-800">${props.time} น.</p></div>
+                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100"><p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Date / วันที่</p><p class="text-xs font-bold text-gray-700">${props.date}</p></div>
+                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100"><p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Time / เวลา</p><p class="text-xs font-bold text-purple-700">${props.time} น.</p></div>
                 </div>
-                <div class="bg-gray-50 p-3 rounded-2xl"><p class="text-xs text-gray-400 font-bold">เบอร์โทร</p><p class="font-medium text-purple-800">${props.phone || '-'}</p></div>
-                <div class="bg-gray-50 p-4 rounded-2xl"><p class="text-xs text-gray-400 font-bold">หัตถการ</p><p class="text-gray-700">${props.treatment || '-'}</p></div>
-                ${props.photo ? `<img src="${props.photo}" class="w-full h-auto rounded-2xl border mt-2 shadow-sm">` : ''}
+                <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100"><p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Phone / เบอร์โทร</p><p class="text-xs font-bold text-gray-700">${props.phone || '-'}</p></div>
+                <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Service / หัตถการ</p><p class="text-xs text-gray-600 leading-relaxed">${props.treatment || '-'}</p></div>
+                ${props.photo ? `<div class="mt-2"><p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-2">Attached Photo / รูปภาพ</p><img src="${props.photo}" class="w-full h-auto rounded-2xl border shadow-md max-h-48 object-cover cursor-zoom-in" onclick="window.open(this.src)"></div>` : ''}
             `;
             
             document.getElementById('newDateInput').value = props.date;
+            document.getElementById('newTimeInput').value = props.time;
             modal.style.display = 'flex';
         }
 
@@ -243,30 +301,21 @@
             try {
                 const response = await fetch(scriptUrl, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        action: 'updateStatus',
-                        rowIndex: selectedEventData.rowIndex,
-                        status: status
-                    })
+                    body: JSON.stringify({ action: 'updateStatus', rowIndex: selectedEventData.rowIndex, status: status })
                 });
                 const result = await response.json();
                 if (result.result === 'success') {
                     closeModal();
                     calendar.refetchEvents();
-                } else {
-                    alert('เกิดข้อผิดพลาด: ' + result.error);
-                }
-            } catch (e) {
-                alert('การเชื่อมต่อล้มเหลว กรุณาตรวจสอบ Google Script');
-            } finally {
-                showActionLoading(false);
-            }
+                } else { alert('Error: ' + result.error); }
+            } catch (e) { alert('การเชื่อมต่อล้มเหลว กรุณาลองใหม่อีกครั้ง'); } finally { showActionLoading(false); }
         }
 
         async function rescheduleAppointment() {
             const newDate = document.getElementById('newDateInput').value;
-            if (!selectedEventData || !newDate) {
-                alert('กรุณาเลือกวันที่ใหม่');
+            const newTime = document.getElementById('newTimeInput').value;
+            if (!selectedEventData || !newDate || !newTime) {
+                alert('กรุณาระบุวันที่และเวลาที่ต้องการเลื่อนนัด');
                 return;
             }
             
@@ -274,34 +323,24 @@
             try {
                 const response = await fetch(scriptUrl, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        action: 'reschedule',
-                        rowIndex: selectedEventData.rowIndex,
-                        newDate: newDate,
-                        status: 'เลื่อนนัด'
+                    body: JSON.stringify({ 
+                        action: 'reschedule', 
+                        rowIndex: selectedEventData.rowIndex, 
+                        newDate: newDate, 
+                        newTime: newTime,
+                        status: 'เลื่อนนัด' 
                     })
                 });
                 const result = await response.json();
                 if (result.result === 'success') {
                     closeModal();
                     calendar.refetchEvents();
-                } else {
-                    alert('เกิดข้อผิดพลาด: ' + result.error);
-                }
-            } catch (e) {
-                alert('การเชื่อมต่อล้มเหลว');
-            } finally {
-                showActionLoading(false);
-            }
+                } else { alert('Error: ' + result.error); }
+            } catch (e) { alert('การเชื่อมต่อล้มเหลว'); } finally { showActionLoading(false); }
         }
 
-        function callCustomer() {
-            if (selectedEventData && selectedEventData.phone) {
-                window.location.href = `tel:${selectedEventData.phone}`;
-            }
-        }
-
-        function refreshCalendar() { calendar.refetchEvents(); }
+        function callCustomer() { if (selectedEventData?.phone) window.location.href = `tel:${selectedEventData.phone}`; }
+        function refreshCalendar() { if(calendar) calendar.refetchEvents(); }
         function closeModal() { document.getElementById('eventModal').style.display = 'none'; }
         function showActionLoading(show) { document.getElementById('actionLoading').classList.toggle('hidden', !show); }
         
