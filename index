@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการปฏิทินแยกสาขา - Florenza Clinic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #f8f9fa; }
+        .purple-gradient { background: linear-gradient(135deg, #6b21a8 0%, #4c1d95 100%); }
+        .fc-event { cursor: pointer; border: none !important; padding: 3px 6px; border-radius: 6px; font-size: 0.85em; transition: transform 0.1s; }
+        .fc-event:hover { transform: scale(1.02); }
+        
+        /* สีแยกตามสาขา */
+        .branch-chiangmai { background-color: #9333ea !important; } /* ม่วง */
+        .branch-bangyai { background-color: #db2777 !important; }    /* ชมพู */
+        .branch-sriracha { background-color: #2563eb !important; }   /* น้ำเงิน */
+        .branch-ramintra { background-color: #059669 !important; }   /* เขียว */
+        
+        .fc-toolbar-title { font-size: 1.25em !important; color: #4c1d95; font-weight: 600; }
+        .fc-button-primary { background-color: #7e22ce !important; border-color: #7e22ce !important; }
+        .fc-button-primary:disabled { background-color: #a78bfa !important; border-color: #a78bfa !important; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="bg-white shadow-md py-4 mb-6 sticky top-0 z-50">
+        <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center">
+                <img src="https://florenza-clinic.com/wp-content/uploads/2026/02/Logo-Florenza-1-Edited.png" 
+                     alt="Florenza Logo" class="h-10 md:h-12 w-auto mr-4">
+                <div>
+                    <h1 class="text-lg md:text-xl font-bold text-purple-900">Admin Dashboard</h1>
+                    <p class="text-xs text-purple-500">จัดการตารางนัดหมายแยกรายสาขา</p>
+                </div>
+            </div>
+            
+            <!-- ตัวกรองสาขา (ไม่มีแบบรวม) -->
+            <div class="flex items-center bg-purple-50 p-1 rounded-xl border border-purple-100 w-full md:w-auto">
+                <label for="branchFilter" class="px-3 text-sm font-medium text-purple-700 whitespace-nowrap">เลือกสาขา:</label>
+                <select id="branchFilter" onchange="refreshCalendar()" 
+                    class="bg-white border-none rounded-lg py-2 px-4 text-sm font-medium text-purple-900 focus:ring-2 focus:ring-purple-500 w-full md:w-48 outline-none shadow-sm">
+                    <option value="Chiang Mai" selected>เชียงใหม่ (ม่วง)</option>
+                    <option value="Bang Yai">บางใหญ่ (ชมพู)</option>
+                    <option value="Sriracha">ศรีราชา (น้ำเงิน)</option>
+                    <option value="Ramintra">รามอินทรา (เขียว)</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 pb-12">
+        <div class="bg-white rounded-3xl shadow-xl p-4 md:p-8 border border-purple-50">
+            <div id="calendar" class="bg-white min-h-[600px]"></div>
+        </div>
+    </main>
+
+    <!-- รายละเอียดนัดหมาย (Modal) -->
+    <div id="eventModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-[100] backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl transform transition-all">
+            <div class="flex justify-between items-start mb-4">
+                <h3 id="modalTitle" class="text-xl font-bold text-purple-900">รายละเอียดนัดหมาย</h3>
+                <span id="branchBadge" class="px-2 py-1 rounded-md text-xs font-bold text-white uppercase"></span>
+            </div>
+            <div id="modalContent" class="space-y-4 text-sm md:text-base">
+                <!-- ข้อมูลจะถูกเติมด้วย JS -->
+            </div>
+            <div class="mt-8 flex gap-3">
+                <button onclick="closeModal()" class="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200 transition-colors">ปิดหน้าต่าง</button>
+                <button id="callButton" class="flex-1 purple-gradient text-white py-3 rounded-xl font-medium shadow-md hover:opacity-90 transition-opacity">โทรหาลูกค้า</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const scriptUrl = "https://script.google.com/macros/s/AKfycby0ngec8Gf5ZArqHgstMqvg-rInuK4ZuO4Gwtqc0Xj1y5lV0_ozaNHk9GeMWYkas4HI/exec";
+        
+        let calendar;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initCalendar();
+        });
+
+        function initCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'th',
+                height: 'auto',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                buttonText: {
+                    today: 'วันนี้',
+                    month: 'เดือน',
+                    week: 'สัปดาห์',
+                    day: 'วัน'
+                },
+                events: async function(info, successCallback, failureCallback) {
+                    if (!scriptUrl) return successCallback([]);
+                    
+                    try {
+                        const response = await fetch(scriptUrl);
+                        const allRows = await response.json();
+                        const currentFilter = document.getElementById('branchFilter').value;
+                        
+                        // กรองข้อมูลเฉพาะสาขาที่เลือกเท่านั้น (ไม่มี 'all')
+                        const filteredRows = allRows.filter(row => row[3] === currentFilter);
+
+                        const events = filteredRows.map(row => {
+                            const branchMapping = {
+                                'Chiang Mai': 'branch-chiangmai',
+                                'Bang Yai': 'branch-bangyai',
+                                'Sriracha': 'branch-sriracha',
+                                'Ramintra': 'branch-ramintra'
+                            };
+
+                            return {
+                                title: `${row[1]} (${row[5]})`,
+                                start: `${row[4]}T${row[5]}:00`,
+                                className: branchMapping[row[3]] || '',
+                                extendedProps: {
+                                    fullname: row[1],
+                                    phone: row[2],
+                                    branch: row[3],
+                                    time: row[5],
+                                    treatment: row[6],
+                                    photo: row[7],
+                                    timestamp: row[0]
+                                }
+                            };
+                        });
+                        successCallback(events);
+                    } catch (e) {
+                        console.error('Fetch Error:', e);
+                        failureCallback(e);
+                    }
+                },
+                eventClick: function(info) {
+                    showEventDetails(info.event);
+                }
+            });
+            calendar.render();
+        }
+
+        function refreshCalendar() {
+            if (calendar) calendar.refetchEvents();
+        }
+
+        function showEventDetails(event) {
+            const props = event.extendedProps;
+            const modal = document.getElementById('eventModal');
+            const content = document.getElementById('modalContent');
+            const badge = document.getElementById('branchBadge');
+            const callBtn = document.getElementById('callButton');
+
+            badge.textContent = props.branch;
+            const badgeColors = {
+                'Chiang Mai': 'bg-purple-600',
+                'Bang Yai': 'bg-pink-600',
+                'Sriracha': 'bg-blue-600',
+                'Ramintra': 'bg-green-600'
+            };
+            badge.className = `px-2 py-1 rounded-md text-[10px] font-bold text-white uppercase ${badgeColors[props.branch] || 'bg-gray-500'}`;
+
+            content.innerHTML = `
+                <div class="bg-purple-50 p-4 rounded-2xl">
+                    <p class="text-xs text-purple-400 uppercase font-bold mb-1">ชื่อลูกค้า</p>
+                    <p class="text-lg font-semibold text-purple-900">${props.fullname}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-gray-50 p-3 rounded-2xl">
+                        <p class="text-xs text-gray-400 font-bold mb-1">เวลานัดหมาย</p>
+                        <p class="font-medium">${props.time} น.</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-2xl">
+                        <p class="text-xs text-gray-400 font-bold mb-1">เบอร์โทรศัพท์</p>
+                        <p class="font-medium">${props.phone}</p>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-2xl">
+                    <p class="text-xs text-gray-400 font-bold mb-1">หัตถการ / อาหารเสริมที่สนใจ</p>
+                    <p class="text-gray-700">${props.treatment || 'ไม่ระบุ'}</p>
+                </div>
+                ${props.photo ? `
+                <div class="mt-2">
+                    <p class="text-xs text-gray-400 font-bold mb-2 uppercase">รูปภาพแนบ</p>
+                    <img src="${props.photo}" class="w-full h-auto rounded-2xl border shadow-sm cursor-zoom-in" onclick="window.open(this.src)">
+                </div>` : ''}
+            `;
+
+            callBtn.onclick = () => window.location.href = `tel:${props.phone}`;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('eventModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('eventModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
