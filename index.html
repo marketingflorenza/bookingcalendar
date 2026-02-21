@@ -122,21 +122,20 @@
             </div>
         </div>
 
-        <!-- แจ้งเตือนข้อผิดพลาด (ปรับปรุงให้เด่นชัดขึ้น) -->
+        <!-- แจ้งเตือนข้อผิดพลาด -->
         <div id="errorBanner" class="hidden bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded shadow-md text-sm">
             <div class="flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
-                <p class="font-bold">การเชื่อมต่อผิดพลาด (Failed to fetch)</p>
+                <p class="font-bold">การเชื่อมต่อขัดข้อง (Connection Issue)</p>
             </div>
             <p id="errorMessage" class="mt-1 ml-7"></p>
-            <div class="mt-3 ml-7 text-xs opacity-90">
-                <p class="font-semibold mb-1">ขั้นตอนการตรวจสอบ:</p>
-                <ol class="list-decimal list-inside space-y-1">
-                    <li>ไปที่ Google Apps Script ของคุณ</li>
-                    <li>กด <b>Deploy (การปรับใช้)</b> > <b>Manage Deployments</b></li>
-                    <li>ตรวจสอบว่า <b>Who has access</b> ตั้งค่าเป็น <b>"Anyone"</b></li>
-                    <li>ตรวจสอบว่าลิงก์ <code>scriptUrl</code> ในโค้ดถูกต้อง (ไม่มี ' หรือช่องว่างเกินมาที่ท้ายลิงก์)</li>
-                </ol>
+            <div class="mt-3 ml-7 text-xs opacity-90 border-t border-red-200 pt-2">
+                <p class="font-semibold mb-1">สาเหตุที่พบบ่อยและวิธีแก้:</p>
+                <ul class="list-disc list-inside space-y-1">
+                    <li><b>เพิ่งแก้ Script:</b> ต้องกด <b>Deploy > New Deployment</b> ใน Google Script ทุกครั้งที่แก้ไข</li>
+                    <li><b>สิทธิ์การเข้าถึง:</b> ตรวจสอบว่าเลือก <b>"Who has access: Anyone"</b></li>
+                    <li><b>เน็ตเวิร์ก:</b> อินเทอร์เน็ตบางค่ายอาจบล็อกการดึงข้อมูลจาก Google ชั่วคราว ลองกดรีเฟรชที่มุมบนขวา</li>
+                </ul>
             </div>
         </div>
 
@@ -233,7 +232,7 @@
     </div>
 
     <script>
-        // แก้ไข URL ให้ถูกต้อง (ลบเครื่องหมาย ' ที่อาจติดมาออก)
+        // กำหนด URL ของ Google Apps Script
         const scriptUrl = "https://script.google.com/macros/s/AKfycby2_UeeHvnOpCwo4N7hcAwB3Fr0Gx2xIkR1mr6H5tG3zxVFm5m3JkWWpMPzuaYEVzeNgA/exec";
         
         let calendar;
@@ -247,7 +246,6 @@
                 initialView: 'dayGridMonth',
                 locale: 'th',
                 height: 'auto',
-                // แสดงเฉพาะเวลาทำงาน 11:00 - 20:00
                 slotMinTime: '11:00:00',
                 slotMaxTime: '21:00:00', 
                 headerToolbar: { 
@@ -261,21 +259,21 @@
                     errorBanner.classList.add('hidden');
                     
                     try {
-                        // ปรับปรุงการ Fetch ให้ทนทานต่อ Redirect ของ Google Script
+                        // เพิ่ม cache: 'no-store' เพื่อป้องกันเบราว์เซอร์ดึงข้อมูลเก่าที่แคชไว้
                         const response = await fetch(scriptUrl, {
                             method: 'GET',
                             redirect: 'follow',
-                            // การเชื่อมต่อกับ Google Script มักต้องการ CORS mode
-                            mode: 'cors'
+                            mode: 'cors',
+                            cache: 'no-store'
                         });
                         
-                        if (!response.ok) throw new Error('ไม่สามารถรับข้อมูลจากเซิร์ฟเวอร์ได้ (Status: ' + response.status + ')');
+                        if (!response.ok) throw new Error('Network error: ' + response.status);
                         
                         const allRows = await response.json();
                         
                         if (!Array.isArray(allRows)) {
-                            if (allRows.error) throw new Error('Google Script Error: ' + allRows.error);
-                            throw new Error('รูปแบบข้อมูลที่ได้รับไม่ถูกต้อง');
+                            if (allRows && allRows.error) throw new Error(allRows.error);
+                            throw new Error('Invalid data format received');
                         }
                         
                         const currentBranch = document.getElementById('branchFilter').value;
@@ -361,12 +359,12 @@
                 <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 text-center"><p class="text-[9px] text-gray-400 font-bold uppercase mb-1">เบอร์โทรติดต่อ</p><p class="text-sm font-bold text-gray-700">${props.phone || '-'}</p></div>
                 <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p class="text-[9px] text-gray-400 font-bold uppercase mb-1">หัตถการ / บริการที่สนใจ</p><p class="text-xs text-gray-600 leading-relaxed font-medium">${props.treatment || '-'}</p></div>
                 ${props.photo ? `
-                    <div class="mt-4 pt-4 border-t border-gray-100">
-                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3 text-center">Reference Photo / รูปภาพแนบ</p>
-                        <div class="rounded-2xl overflow-hidden border-4 border-white shadow-xl">
-                            <img src="${props.photo}" class="w-full h-auto cursor-zoom-in hover:opacity-95 transition-all shadow-inner" onclick="window.open(this.src)">
+                    <div class="mt-4 pt-4 border-t border-gray-100 text-center">
+                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3">Reference Photo / รูปภาพแนบ</p>
+                        <div class="rounded-2xl overflow-hidden border-4 border-white shadow-xl inline-block max-w-full">
+                            <img src="${props.photo}" class="max-w-full h-auto cursor-zoom-in hover:opacity-95 transition-all shadow-inner" onclick="window.open(this.src)">
                         </div>
-                        <p class="text-[9px] text-gray-400 text-center mt-2 italic">* คลิกที่รูปเพื่อขยายใหญ่เต็มหน้าจอ</p>
+                        <p class="text-[9px] text-gray-400 mt-2 italic">* คลิกที่รูปเพื่อขยายใหญ่</p>
                     </div>` : ''}
             `;
             
@@ -383,7 +381,8 @@
             try {
                 const response = await fetch(scriptUrl, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'updateStatus', rowIndex: selectedEventData.rowIndex, status: status })
+                    body: JSON.stringify({ action: 'updateStatus', rowIndex: selectedEventData.rowIndex, status: status }),
+                    mode: 'cors'
                 });
                 const result = await response.json();
                 if (result.result === 'success') {
@@ -411,7 +410,8 @@
                         newDate: newDate, 
                         newTime: newTime,
                         status: 'เลื่อนนัด' 
-                    })
+                    }),
+                    mode: 'cors'
                 });
                 const result = await response.json();
                 if (result.result === 'success') {
